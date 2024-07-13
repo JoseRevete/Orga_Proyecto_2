@@ -160,12 +160,14 @@ p_bucle_principal: subi $s0 $s0 540
 
 
 bucle_principal:
+	li $t7 0
 	li $v0,32
 	li $a0,200
 	syscall
 	
 	li $t0 0
 	jal mover_ast
+	beq $t7 1 reiniciar_derecha
 	j reiniciar
 	
 
@@ -191,7 +193,7 @@ izquierda:
 ir_al_final:
 
 	sb $zero 1($s0)
-	addi $s0 $s0 25
+	addi $s0 $s0 24
 	sb $t1 1($s0)
 	addi $s0 $s0 2
 	addi $t0 $t0 26
@@ -226,10 +228,11 @@ derecha:
 ir_al_comienzo:
 
 	sb $zero 0($s0)
-	subi $s0 $s0 25
+	subi $s0 $s0 24
 	sb $t1 0($s0)
 	subi $s0 $s0 26
 	subi $t0 $t0 26
+	li $t7 1
 	j reverse
 
 # Caso 2: .   >   ., entonces .     >  .
@@ -239,9 +242,18 @@ mover_derecha:
 	sb $t1 1($s0)
 	subi $s0 $s0 1
 	subi $t0 $t0 1
+
 	j reverse
 	
 # Se reinician las variables y se deja en 0,0 el tablero
+reiniciar_derecha:
+	subi $s0 $s0 3
+	li $t0 0
+	li $t1 0
+	jal imprimir
+	subi $s0 $s0 540
+	j bucle_principal
+	
 reiniciar:
 	subi $s0 $s0 27
 	li $t0 0
