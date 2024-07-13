@@ -331,6 +331,7 @@ _no_se_puede: .asciiz "No se puede retroceder del home"
 # Leer opcion del piloto (avanzar o retroceder
 mover_piloto:
 	jal buscar
+	#jugador
 	beq $k0 87 avanzar
 	beq $k0 119 avanzar
 	beq $k0 83 retroceder
@@ -348,12 +349,16 @@ regresar: jr $ra
 
 # Se avanza: se verifica si llego a la meta, si en la casilla 0 o 1 hay asteroide que colisione con la nave	
 avanzar:
+	#arriba
+	subi $s0 $s0 27
 	lb $t1 0($s0)
 	lb $t2 1($s0)
 	beq $t1 46 meta
 	or $t3 $t1 $t2
-	bnez $t3 verificar
+	beq $t3 62 colision_k
+	beq $t3 60 colision_k
 
+	addi $s0 $s0 27
 	lb $t3 0($s0)
 	lb $t4 1($s0)
 	sb $zero 0($s0)
@@ -380,19 +385,19 @@ avanzar:
 	sb $t3 0($s0)
 	sb $t4 1($s0)
 	sub $s0 $s0 $t7
-	addi $s0 $s0 27
+	subi $s0 $s0 54
 	
 	j fin_interrupcion
 
 
 # El jugador llego a la meta
 meta:
+	#jugador
 	addi $s0 $s0 27
-	li $t3 32
 	lb $t1 0($s0)
 	lb $t2 1($s0)
-	sb $t3 0($s0)
-	sb $t3 1($s0)
+	sb $zero 0($s0)
+	sb $zero 1($s0)
 	addi $s0 $s0 459
 	sb $t1 0($s0)
 	sb $t2 1($s0)
@@ -400,47 +405,32 @@ meta:
 	subi $s0 $s0 432
 	lb $t1 0($s0)
 	lb $t2 1($s0)
-	sb $t3 0($s0)
-	sb $t3 1($s0)
-	addi $s0 $s0 432
+	sb $zero 0($s0)
+	sb $zero 1($s0)
+	addi $s0 $s0 459
 	sb $t1 0($s0)
 	sb $t2 1($s0)
 	
-	subi $s0 $s0 405
+	subi $s0 $s0 432
 	lb $t1 0($s0)
 	lb $t2 1($s0)
-	sb $t3 0($s0)
-	sb $t3 1($s0)
-	addi $s0 $s0 405
+	sb $zero 0($s0)
+	sb $zero 1($s0)
+	addi $s0 $s0 459
 	sb $t1 0($s0)
 	sb $t2 1($s0)
 	j fin_interrupcion
 	
-	
-# Verificar si hay un asteroide > en la posicion 0 que al mever colisone con la posicion 1, y viceversa	
-verificar:
-	beq $t1 62 colision_k
-	beq $t2 60 colision_k
-	addi $s0 $s0 27
-	lb $t3 0($s0)
-	lb $t4 1($s0)
-	sb $zero 0($s0)
-	sb $zero 1($s0)
-	subi $s0 $s0 27
-	sb $t3 0($s0)
-	sb $t4 1($s0)
-	addi $s0 $s0 42
-	addi $t5 $t5 1
-	j avanzar
-	
-# Retroceder: Se debe crear una variable que indique la candtidad de veces que ha avanzado el piloto. Si la variable es igual a 0, entonces no puede retroceder
+
+# Retroceder: Se debe crear una variable que indique la cantidad de veces que ha avanzado el piloto. Si la variable es igual a 0, entonces no puede retroceder
 retroceder:
-	blez $t9 no
+	beqz $t9 no
 	addi $s0 $s0 81
 	lb $t1 0($s0)
 	lb $t2 1($s0)
 	or $t3 $t1 $t2
-	bnez $t3 verificar
+	beq $t3 62 colision_k
+	beq $t3 60 colision_k
 	
 	subi $s0 $s0 27
 	lb $t1 0($s0)
