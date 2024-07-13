@@ -122,10 +122,16 @@ print:
 	beq $t0 27 next
 	li $v0 11
 	lb $t3 0($s0)
-	
+		
 	beqz $t3 space
-
+	
+	midprint:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1
+    	beq     $s7,$zero,midprint
 	move $a0 $t3
+	sb      $a0,0x000c($s6)
 	syscall
 	
 	addi $s0 $s0 1
@@ -134,8 +140,13 @@ print:
 
 # Si hay un 0, se imprime un espacio	
 space:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,space
 	addi $t3 $t3 32
 	move $a0 $t3
+	sb      $a0,0x000c($s6)
 	syscall
 	
 	addi $s0 $s0 1
@@ -144,10 +155,16 @@ space:
 
 # Siguiente fila
 next:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,next
 	li $v0 4
 	la $a0 nl
-	syscall
 	
+	syscall
+	li $a0,10
+	sb      $a0,0x000c($s6)
 	li $t0 0
 	addi $t1 $t1 1
 	j print
@@ -275,8 +292,14 @@ imprimir:
 	lb $t3 0($s0)
 	
 	beqz $t3 espacio
-
+	
+	midimprimir:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1
+    	beq     $s7,$zero,midimprimir
 	move $a0 $t3
+	sb      $a0,0x000c($s6)
 	syscall
 	
 	addi $s0 $s0 1
@@ -285,8 +308,13 @@ imprimir:
 
 # Si hay un 0, se imprime un espacio	
 espacio:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,espacio
 	addi $t3 $t3 32
 	move $a0 $t3
+	sb      $a0,0x000c($s6)
 	syscall
 	
 	addi $s0 $s0 1
@@ -294,9 +322,16 @@ espacio:
 	j print
 
 sgte:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,sgte
 	li $v0 4
 	la $a0 nl
+
 	syscall
+	li $a0,10
+	sb      $a0,0x000c($s6)
 	
 	li $t0 0
 	addi $t1 $t1 1
