@@ -6,7 +6,7 @@ nl: .asciiz "\n"
 point: .word 46
 tiempo: .space 40
 choque: .asciiz "Oh no! Has colisionado"
-pedir: .asciiz "Indique si desea que la nave avance o retroceda (W para avanzar y S para retroceder): "
+pedir: .asciiz "Indique si desea que la nave avance o retroceda (W para avanzar y S para retroceder)"
 letra: .space 2
 	.asciiz ""
 
@@ -70,6 +70,10 @@ loop2:
 
 # Se genera de manera aleatoria la posicion del asteroide
 random:
+	li $v0,32
+	li $a0,10
+	syscall
+	
 	li $v0,30
 	syscall
 	move $a1,$a0
@@ -180,7 +184,7 @@ p_bucle_principal: subi $s0 $s0 540
 bucle_principal:
 	
 	li $v0,32
-	li $a0,200
+	li $a0,500
 	syscall
 	
 	li $t0 0
@@ -358,69 +362,80 @@ end:
 .kdata
 _choque: .asciiz "Ocurrio colision"
 _no_se_puede: .asciiz "No se puede retroceder del home"
+_none: .asciiz "Se ha introducido un caracter distinto de W,w,S,s"
 
 .ktext 0x80000180
 
 	lw $k0 0xffff0004
-	
+	subi $t8 $s0 268501019
+	sub $s0 $s0 $t8
+
 # Leer opcion del piloto (avanzar o retroceder
 mover_piloto:
-	jal buscar
+	j buscar
 	#jugador
+	
+mover:
 	beq $k0 87 avanzar
 	beq $k0 119 avanzar
 	beq $k0 83 retroceder
 	beq $k0 115 retroceder
-	j mover_piloto
+	j ninguno
+	
+ninguno:
+	li $v0 4
+	la $a0 _none
+	syscall
+	j fin_interrupcion
 
 buscar:
-	lb $t8 0($s0)
-	beq $t8 47 regresar
+	lb $t4 0($s0)
+	beq $t4 47 mover
 	addi $s0 $s0 1
 	addi $t7 $t7 1
 	j buscar
-	
-regresar: jr $ra
 
 # Se avanza: se verifica si llego a la meta, si en la casilla 0 o 1 hay asteroide que colisione con la nave	
 avanzar:
-	#arriba
-	subi $s0 $s0 27
-	lb $t1 0($s0)
-	lb $t2 1($s0)
-	beq $t1 46 meta
-	or $t3 $t1 $t2
-	beq $t3 62 colision_k
-	beq $t3 60 colision_k
+	
+	subi $s0 $s0 27 #arriba
+	lb $t4 0($s0)
+	lb $t5 1($s0)
+	beq $t4 46 meta
+	or $t6 $t4 $t5
+	beq $t6 62 colision_k
+	beq $t6 60 colision_k
 
 	addi $s0 $s0 27
-	lb $t3 0($s0)
-	lb $t4 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	subi $s0 $s0 27
-	sb $t3 0($s0)
-	sb $t4 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	addi $s0 $s0 54
 	
-	lb $t3 0($s0)
-	lb $t4 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	subi $s0 $s0 27
-	sb $t3 0($s0)
-	sb $t4 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	addi $s0 $s0 54
 	
-	lb $t3 0($s0)
-	lb $t4 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	subi $s0 $s0 27
-	sb $t3 0($s0)
-	sb $t4 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	sub $s0 $s0 $t7
+	add $s0 $s0 $t8
 	subi $s0 $s0 54
+	addi $t9 $t9 1
 	
 	j fin_interrupcion
 
@@ -429,31 +444,37 @@ avanzar:
 meta:
 	#jugador
 	addi $s0 $s0 27
-	lb $t1 0($s0)
-	lb $t2 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	addi $s0 $s0 459
-	sb $t1 0($s0)
-	sb $t2 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	
 	subi $s0 $s0 432
-	lb $t1 0($s0)
-	lb $t2 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	addi $s0 $s0 459
-	sb $t1 0($s0)
-	sb $t2 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	
 	subi $s0 $s0 432
-	lb $t1 0($s0)
-	lb $t2 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	addi $s0 $s0 459
-	sb $t1 0($s0)
-	sb $t2 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
+	subi $s0 $s0 459
+	sub $s0 $s0 $t7
+	add $s0 $s0 $t8
+	subi $s0 $s0 81
+	
+	li $t9 0
 	j fin_interrupcion
 	
 
@@ -461,40 +482,42 @@ meta:
 retroceder:
 	beqz $t9 no
 	addi $s0 $s0 81
-	lb $t1 0($s0)
-	lb $t2 1($s0)
-	or $t3 $t1 $t2
-	beq $t3 62 colision_k
-	beq $t3 60 colision_k
+	lb $t4 0($s0)
+	lb $t5 1($s0)
+	or $t6 $t4 $t5
+	beq $t6 62 colision_k
+	beq $t6 60 colision_k
 	
 	subi $s0 $s0 27
-	lb $t1 0($s0)
-	lb $t2 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	addi $s0 $s0 27
-	sb $t1 0($s0)
-	sb $t2 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	
 	subi $s0 $s0 54
-	lb $t1 0($s0)
-	lb $t2 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	addi $s0 $s0 27
-	sb $t1 0($s0)
-	sb $t2 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	
 	subi $s0 $s0 54
-	lb $t1 0($s0)
-	lb $t2 1($s0)
+	lb $t4 0($s0)
+	lb $t5 1($s0)
 	sb $zero 0($s0)
 	sb $zero 1($s0)
 	addi $s0 $s0 27
-	sb $t1 0($s0)
-	sb $t2 1($s0)
+	sb $t4 0($s0)
+	sb $t5 1($s0)
 	sub $s0 $s0 $t7
-	subi $s0 $s0 27
+	add $s0 $s0 $t8
+	subi $s0 $s0 54
+	subi $t9 $t9 1
 	
 	j fin_interrupcion
 
@@ -502,6 +525,8 @@ no:
 	li $v0 4
 	la $a0 _no_se_puede
 	syscall
+	sub $s0 $s0 $t7
+	subi $s0 $s0 27
 	j fin_interrupcion
 	
 # Ocurrio una colision	
@@ -511,5 +536,7 @@ colision_k:
 	syscall
 	
 fin_interrupcion:
+	addi $s0 $s0 27
+	sw $zero 0xffff0004
 	li $t7 0
 	eret
