@@ -14,28 +14,33 @@ letra: .space 2
 laps: .asciiz "Vueltas hechas: "
 t: .asciiz "o"
 tiempo_finalizado: .asciiz "Se ha acabado el tiempo. Deseas volver a jugar? (Responde '0' para no o '1' para si): "
+a1: .asciiz "  _____  _____    ____    ____  _____      ____    ____    ____  _____\n"
+a2: .asciiz " / ____||  __ \\  / __ \\  / ___|| ____|    |    \\  / __ \\  / ___|| ____|\n"          
+a3: .asciiz "| (___  | |__) || |  | || /    | |__      | |\\  || |  | || /    | |__ \n"  
+a4: .asciiz " \\___ \\ |  ___/ | |__| || |    |  __|     | |/ / | |__| || |    |  __|\n"            
+a5: .asciiz " ____)  | |     |  __  || \\___ | |___     |  _ \\ |  __  || \\___ | |___\n"                 
+a6: .asciiz "|_____/ |_|     |_|  |_| \\____||_____|    |_| \\_\\|_|  |_| \\____||_____|\n"
+bienvenido: .asciiz "Bienvenido a Space Race. Te dare una nave, espero la cuides.\n Las reglas son simples: intenta hacer la mayor cantidad de vueltas en 100 segundos sin chocar con los asteroides.\n ¿Como te mueves? Pues presionando w para avanzar y s para retroceder.\n\n¡Suerte piloto! No destruyas tu nave"
+gracias: .asciiz "\n Y eso fue todo, gracias por jugar, veo que la nave esta casi como nueva.\n¡Vuelve pronto!\n"
+
 
 .text
-empezar:
-	li $t0 0
-	li $t0 0
-	li $t1 0
-	li $t2 0
-	li $t3 0
-	li $t4 0
-	li $t5 0
-	li $t6 0
-	li $t7 0
-	li $t8 0
-	li $t9 0
-	move $at $zero
-	move $v0 $zero
-	move $s7 $zero
-	move $s0 $zero
-	move $s1 $zero
-	move $s2 $zero
-	move $k0 $zero
-	
+li $v0 4
+la $a0 a1
+syscall
+la $a0 a2
+syscall
+la $a0 a3
+syscall
+la $a0 a4
+syscall
+la $a0 a5
+syscall
+la $a0 a6
+syscall
+li $v0,32
+li $a0,3000
+syscall
 li $t4 2
 sw $t4 0xffff0000
 # Se cargan necesarias para el programa
@@ -196,11 +201,11 @@ p_bucle_principal: subi $s0 $s0 540
 
 
 
-
+# Ciclo para mover asteroides y actualizar el tablero
 bucle_principal:
 	
 	li $v0,32
-	li $a0,500
+	li $a0,180
 	syscall
 	
 	li $t0 0
@@ -252,7 +257,7 @@ mover_izquierda:
 	
 	
 	
-
+# Mover los asteroides de derecha a izquierda
 reverse:
 	beq $t9 -1 colision
 	beqz $t0 volver
@@ -295,7 +300,7 @@ mover_derecha:
 reiniciar:
 	beq $t9 -1 colision
 	jal imprimir
-	subi $s0 $s0 540
+	li $s0 268501019
 	j bucle_principal
 	
 
@@ -306,21 +311,57 @@ volver:
 	
 # Ocurrio una colision	
 colision:
-	li $v0 4
-	la $a0 choque
-	syscall
-	li $v0 5
-	la $a0 respuesta
-	li $a1 3
-	syscall
-	move $t0 $v0
-	beq $t0 1 empezar
-	beqz $t0 end
-	li $v0 4
-	la $a0 rechazar
-	syscall
-	j colision
+	li $s0 268501019
+	j buscar_piloto
+	
+# Se busca la posicion del piloto
+buscar_piloto:
+	lb $t4 0($s0)
+	beq $t4 47 borrar_piloto
+	addi $s0 $s0 1
+	addi $t7 $t7 1
+	j buscar_piloto
 
+#Se borra el piloto de su posicion actual
+borrar_piloto:
+	sb $zero  0($s0)
+	sb $zero  1($s0)
+	addi $s0 $s0 27
+	sb $zero  0($s0)
+	sb $zero  1($s0)
+	addi $s0 $s0 27
+	sb $zero  0($s0)
+	sb $zero  1($s0)
+	li $s0 268501478
+	j dibujar_piloto
+	
+# Se dibuja al piloto en el home
+dibujar_piloto:
+	addi $s0 $s0 12
+	addi $t0 $t0 12
+	li $t1 47
+	sb $t1 0($s0)
+	li $t1 92
+	sb $t1 1($s0)
+	add $s0 $s0 27
+	addi $t0 $t0 27
+	li $t1 124
+	sb $t1 0($s0)
+	sb $t1 1($s0)
+	add $s0 $s0 27
+	addi $t0 $t0 27
+	li $t1 47
+	sb $t1 0($s0)
+	li $t1 92
+	sb $t1 1($s0)
+	
+	subi $s0 $s0 552
+	li $t0 0
+	li $t1 0
+	li $t9 0
+	beq $t8 -1 en_cero
+	
+#Imprimir el tablero
 imprimir:
 	beq $t9 -1 colision
 	beq $t1 21 linea_laps
@@ -343,6 +384,40 @@ imprimir:
 	addi $t0 $t0 1
 	j imprimir
 	
+# Si hay un 0, se imprime un espacio	
+espacio:
+	beq $t9 -1 colision
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,espacio
+	addi $t3 $t3 32
+	move $a0 $t3
+	sb      $a0,0x000c($s6)
+	syscall
+	
+	addi $s0 $s0 1
+	addi $t0 $t0 1
+	j imprimir
+
+#Siguiente linea en el tablero
+sgte:
+	beq $t9 -1 colision
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,sgte
+	li $v0 4
+	la $a0 nl
+
+	syscall
+	li $a0,10
+	sb      $a0,0x000c($s6)
+	
+	li $t0 0
+	addi $t1 $t1 1
+	j imprimir
+	
 # Conteo de laps
 linea_laps:
 	li $v0 4
@@ -363,19 +438,21 @@ linea_laps:
 print_tiempo:
 	beq $s3 25 p_tiempo
 	beqz $s4 tiempo_agotado
-	beqz $t4 volver
+	beqz $t4 volver_t
 	li $v0 4
 	la $a0 t
 	syscall
 	subi $t4 $t4 1
-	j tiempo
+	j print_tiempo
 	
+# Auxiliar para reducir el tiempo en uno
 p_tiempo: subi $s4 $s4 1
+	subi $t4 $t4 1
 
 #Imprime el tiempo cuando hay que reducir uno
 tiempo:
 	beqz $s4 tiempo_agotado
-	beqz $t4 volver
+	beqz $t4 volver_t
 	li $v0 4
 	la $a0 t
 	syscall
@@ -383,6 +460,7 @@ tiempo:
 	move $s3 $zero
 	j tiempo
 	
+# Tiempo agotado. Preguntar si desea volver a jugar
 tiempo_agotado:
 	li $v0 4
 	la $a0 tiempo_finalizado
@@ -392,49 +470,66 @@ tiempo_agotado:
 	li $a1 3
 	syscall
 	move $t0 $v0
-	beq $t0 1 empezar
+	beq $t0 1 p_reinicio
 	beqz $t0 end
 	li $v0 4
 	la $a0 rechazar
 	syscall
 	j tiempo_agotado
 	
-# Si hay un 0, se imprime un espacio	
-espacio:
-	beq $t9 -1 colision
-	la      $s6,0xffff0000
-	lw      $s7,0x0008($s6)                
-    	andi    $s7,$s7,1               
-    	beq     $s7,$zero,espacio
-	addi $t3 $t3 32
-	move $a0 $t3
-	sb      $a0,0x000c($s6)
-	syscall
-	
-	addi $s0 $s0 1
-	addi $t0 $t0 1
-	j print
+# Reiniciar juego
+p_reinicio:
+	li $t8 -1
+	j colision
 
-sgte:
-	beq $t9 -1 colision
-	la      $s6,0xffff0000
-	lw      $s7,0x0008($s6)                
-    	andi    $s7,$s7,1               
-    	beq     $s7,$zero,sgte
+# Volver al bucle principal
+volver_t:
+	li $s0 268501046
 	li $v0 4
 	la $a0 nl
-
 	syscall
+	li $v0,32
 	li $a0,10
-	sb      $a0,0x000c($s6)
+	syscall
+	j volver
 	
+# Colocar todo en 0 para el reinicio del tablero
+en_cero:
 	li $t0 0
-	addi $t1 $t1 1
-	j print
-
-
+	li $t1 0
+	li $t2 0
+	li $t3 0
+	li $t4 0
+	li $t5 0
+	li $t6 0
+	li $t7 0
+	li $t8 0
+	li $t9 0
+	move $at $zero
+	move $v0 $zero
+	move $s7 $zero
+	li $s0 268500992
+	move $s1 $zero
+	move $s2 $zero
+	move $s3 $zero
+	li $s4 20
+	move $s5 $zero
+	move $s6 $zero
+	move $s7 $zero
+	move $k0 $zero
+	j imprimir
+	
 # Fin
 end:	
+	li $v0 4
+	la $a0 gracias
+	syscall
+	
+	la $a0 laps
+	syscall
+	li $v0 1
+	move $a0 $s2
+	syscall	
 	li $v0 10
 	syscall
 
@@ -451,30 +546,33 @@ end:
 
 
 .kdata
-_choque: .asciiz "Ocurrio colision"
-_no_se_puede: .asciiz "No se puede retroceder del home"
-_none: .asciiz "Se ha introducido un caracter distinto de W,w,S,s"
+_choque: .asciiz "Ocurrio colision\n"
+_no_se_puede: .asciiz "No se puede retroceder del home\n"
+_none: .asciiz "Se ha introducido un caracter distinto de W,w,S,s\n"
 
 .ktext 0x80000180
 
+# Caracter ngresado por el usuario 
 	lw $k0 0xffff0004
 	beqz $t9 ver
 	
+# Si se ingresa un caracter correcto con respecto a la posicion a la nave en el atblero, seguir
 seguir:
 	subi $t8 $s0 268501019
 	sub $s0 $s0 $t8
 	j mover_piloto
 	
+# Si la nave esta en el home y se intenta retroceder, se pasa
 ver:
 	beq $k0 83 fin
 	beq $k0 115 fin
 	j seguir
 	
-# Leer opcion del piloto (avanzar o retroceder
+# Leer opcion del piloto (avanzar o retroceder)
 mover_piloto:
 	j buscar
-	#jugador
 	
+# Opcion dada por el usuario
 mover:
 	beq $k0 87 avanzar
 	beq $k0 119 avanzar
@@ -482,12 +580,14 @@ mover:
 	beq $k0 115 retroceder
 	j ninguno
 	
+# Caracter ingresado distinto de W,w,S,s
 ninguno:
 	li $v0 4
 	la $a0 _none
 	syscall
 	j fin_interrupcion
 
+# Buscar posicion de la nave
 buscar:
 	lb $t4 0($s0)
 	beq $t4 47 mover
@@ -498,7 +598,7 @@ buscar:
 # Se avanza: se verifica si llego a la meta, si en la casilla 0 o 1 hay asteroide que colisione con la nave	
 avanzar:
 	
-	subi $s0 $s0 27 #arriba
+	subi $s0 $s0 27
 	lb $t4 0($s0)
 	lb $t5 1($s0)
 	beq $t4 46 meta
@@ -542,7 +642,6 @@ avanzar:
 
 # El jugador llego a la meta
 meta:
-	#jugador
 	addi $s0 $s0 27
 	lb $t4 0($s0)
 	lb $t5 1($s0)
@@ -578,7 +677,7 @@ meta:
 	j fin_interrupcion
 	
 
-# Retroceder: Se debe crear una variable que indique la cantidad de veces que ha avanzado el piloto. Si la variable es igual a 0, entonces no puede retroceder
+# Retroceder la nave, incluye comprobacion de su el si aquella esta en el home
 retroceder:
 	beqz $t9 no
 	addi $s0 $s0 81
@@ -621,6 +720,7 @@ retroceder:
 	
 	j fin_interrupcion
 
+# No permitir retroceder ne el home
 no:
 	li $v0 4
 	la $a0 _no_se_puede
@@ -633,12 +733,14 @@ no:
 colision_k:
 	li $t9 -1
 	
+# Finalizar interrupcion con movimiento
 fin_interrupcion:
 	addi $s0 $s0 27
 	sw $zero 0xffff0004
 	li $t7 0
 	eret
 	
+# Finalizar interrupcion sin movimiento
 fin:
 	sw $zero 0xffff0004
 	eret
