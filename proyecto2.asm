@@ -4,13 +4,38 @@ ast_izq: .word 60
 ast_der: .word 62
 nl: .asciiz "\n"
 point: .word 46
-tiempo: .space 40
-choque: .asciiz "Oh no! Has colisionado"
+choque: .asciiz "Oh no! Has colisionado. Deseas volver a jugar? (Responde '0' para no o '1' para si): "
+respuesta: .space 4
+	.asciiz ""
+rechazar: .asciiz "Respuesta no valida\n\n"
 pedir: .asciiz "Indique si desea que la nave avance o retroceda (W para avanzar y S para retroceder)"
 letra: .space 2
 	.asciiz ""
+laps: .asciiz "Vueltas hechas: "
+t: .asciiz "o"
+tiempo_finalizado: .asciiz "Se ha acabado el tiempo. Deseas volver a jugar? (Responde '0' para no o '1' para si): "
 
 .text
+empezar:
+	li $t0 0
+	li $t0 0
+	li $t1 0
+	li $t2 0
+	li $t3 0
+	li $t4 0
+	li $t5 0
+	li $t6 0
+	li $t7 0
+	li $t8 0
+	li $t9 0
+	move $at $zero
+	move $v0 $zero
+	move $s7 $zero
+	move $s0 $zero
+	move $s1 $zero
+	move $s2 $zero
+	move $k0 $zero
+	
 li $t4 2
 sw $t4 0xffff0000
 # Se cargan necesarias para el programa
@@ -18,16 +43,7 @@ la $s0 reserva
 lw $t1 ast_izq
 lw $t2 ast_der
 lw $t4 point
-la $s1 tiempo
-
-#Se guarda la linea de teimpo "||"
-linea_t:
-	beq $t0 40 p_primera_fila
-	li $t3 124
-	sb $t3 0($s1)
-	addi $s1 $s1 1
-	addi $t0 $t0 1
-	j linea_t
+li $s4 20
 
 #Previo a imprimir la primera fila de puntos
 p_primera_fila: li $t0 0
@@ -196,6 +212,7 @@ bucle_principal:
 
 # Se mueven los asteroides de izquierda a derecha	
 mover_ast:
+	beq $t9 -1 colision
 	beq $t0 458 reverse
 	lb $t1 1($s0)
 	beq $t1 60 izquierda
@@ -205,6 +222,7 @@ mover_ast:
 
 #Si el asteroide es <, entonces dos casos
 izquierda:
+	beq $t9 -1 colision
 	lb $t2 0($s0)
 	beq $t2 46 ir_al_final
 	beqz $t2 mover_izquierda
@@ -213,7 +231,7 @@ izquierda:
 
 # Caso 1: .<     ., debemos tener .    <.	
 ir_al_final:
-
+	beq $t9 -1 colision
 	sb $zero 1($s0)
 	addi $s0 $s0 24
 	sb $t1 1($s0)
@@ -223,7 +241,7 @@ ir_al_final:
 	
 # Caso 2: .   <   ., debemos tener .   <     .
 mover_izquierda:
-
+	beq $t9 -1 colision
 	sb $zero 1($s0)
 	sb $t1 0($s0)
 	addi $s0 $s0 1
@@ -235,7 +253,8 @@ mover_izquierda:
 	
 	
 
-reverse: 
+reverse:
+	beq $t9 -1 colision
 	beqz $t0 volver
 	lb $t1 0($s0)
 	beq $t1 62 derecha
@@ -245,6 +264,7 @@ reverse:
 	
 # Si el asteroide es >, entoneces dos casos
 derecha:
+	beq $t9 -1 colision
 	lb $t2 1($s0)
 	beq $t2 46 ir_al_comienzo
 	beqz $t2 mover_derecha
@@ -252,6 +272,7 @@ derecha:
 
 # Caso 1: .    >., entonces .>     .
 ir_al_comienzo:
+	beq $t9 -1 colision
 	sb $zero 0($s0)
 	subi $s0 $s0 24
 	sb $t1 0($s0)
@@ -262,7 +283,7 @@ ir_al_comienzo:
 
 # Caso 2: .   >   ., entonces .     >  .
 mover_derecha:
-
+	beq $t9 -1 colision
 	sb $zero 0($s0)
 	sb $t1 1($s0)
 	subi $s0 $s0 1
@@ -272,6 +293,7 @@ mover_derecha:
 	
 # Se reinician las variables y se deja en 0,0 el tablero
 reiniciar:
+	beq $t9 -1 colision
 	jal imprimir
 	subi $s0 $s0 540
 	j bucle_principal
@@ -279,7 +301,7 @@ reiniciar:
 
 # Ayuda para los jal y jr
 volver:
-	
+	beq $t9 -1 colision
 	jr $ra
 	
 # Ocurrio una colision	
@@ -287,16 +309,27 @@ colision:
 	li $v0 4
 	la $a0 choque
 	syscall
-	j end
+	li $v0 5
+	la $a0 respuesta
+	li $a1 3
+	syscall
+	move $t0 $v0
+	beq $t0 1 empezar
+	beqz $t0 end
+	li $v0 4
+	la $a0 rechazar
+	syscall
+	j colision
 
 imprimir:
-	beq $t1 21 volver
+	beq $t9 -1 colision
+	beq $t1 21 linea_laps
 	beq $t0 27 sgte
 	li $v0 11
 	lb $t3 0($s0)
 	
 	beqz $t3 espacio
-	
+
 	midimprimir:
 	la      $s6,0xffff0000
 	lw      $s7,0x0008($s6)                
@@ -309,9 +342,66 @@ imprimir:
 	addi $s0 $s0 1
 	addi $t0 $t0 1
 	j imprimir
+	
+# Conteo de laps
+linea_laps:
+	li $v0 4
+	la $a0 laps
+	syscall
+	
+	li $v0 1
+	move $a0 $s2
+	syscall
+	
+	li $v0 4
+	la $a0 nl
+	syscall
+	move $t4 $s4
+	addi $s3 $s3 1
+	
+# Imprime el tiempo constante
+print_tiempo:
+	beq $s3 25 p_tiempo
+	beqz $s4 tiempo_agotado
+	beqz $t4 volver
+	li $v0 4
+	la $a0 t
+	syscall
+	subi $t4 $t4 1
+	j tiempo
+	
+p_tiempo: subi $s4 $s4 1
 
+#Imprime el tiempo cuando hay que reducir uno
+tiempo:
+	beqz $s4 tiempo_agotado
+	beqz $t4 volver
+	li $v0 4
+	la $a0 t
+	syscall
+	subi $t4 $t4 1
+	move $s3 $zero
+	j tiempo
+	
+tiempo_agotado:
+	li $v0 4
+	la $a0 tiempo_finalizado
+	syscall
+	li $v0 5
+	la $a0 respuesta
+	li $a1 3
+	syscall
+	move $t0 $v0
+	beq $t0 1 empezar
+	beqz $t0 end
+	li $v0 4
+	la $a0 rechazar
+	syscall
+	j tiempo_agotado
+	
 # Si hay un 0, se imprime un espacio	
 espacio:
+	beq $t9 -1 colision
 	la      $s6,0xffff0000
 	lw      $s7,0x0008($s6)                
     	andi    $s7,$s7,1               
@@ -326,6 +416,7 @@ espacio:
 	j print
 
 sgte:
+	beq $t9 -1 colision
 	la      $s6,0xffff0000
 	lw      $s7,0x0008($s6)                
     	andi    $s7,$s7,1               
@@ -367,9 +458,18 @@ _none: .asciiz "Se ha introducido un caracter distinto de W,w,S,s"
 .ktext 0x80000180
 
 	lw $k0 0xffff0004
+	beqz $t9 ver
+	
+seguir:
 	subi $t8 $s0 268501019
 	sub $s0 $s0 $t8
-
+	j mover_piloto
+	
+ver:
+	beq $k0 83 fin
+	beq $k0 115 fin
+	j seguir
+	
 # Leer opcion del piloto (avanzar o retroceder
 mover_piloto:
 	j buscar
@@ -473,7 +573,7 @@ meta:
 	sub $s0 $s0 $t7
 	add $s0 $s0 $t8
 	subi $s0 $s0 81
-	
+	addi $s2 $s2 1
 	li $t9 0
 	j fin_interrupcion
 	
@@ -531,12 +631,14 @@ no:
 	
 # Ocurrio una colision	
 colision_k:
-	li $v0 4
-	la $a0 _choque
-	syscall
+	li $t9 -1
 	
 fin_interrupcion:
 	addi $s0 $s0 27
 	sw $zero 0xffff0004
 	li $t7 0
+	eret
+	
+fin:
+	sw $zero 0xffff0004
 	eret
