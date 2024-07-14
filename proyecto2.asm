@@ -205,7 +205,7 @@ p_bucle_principal: subi $s0 $s0 540
 bucle_principal:
 	
 	li $v0,32
-	li $a0,180
+	li $a0,200
 	syscall
 	
 	li $t0 0
@@ -487,9 +487,6 @@ volver_t:
 	li $s0 268501046
 	li $v0 4
 	la $a0 nl
-	syscall
-	li $v0,32
-	li $a0,10
 	syscall
 	j volver
 	
