@@ -12,7 +12,7 @@ pedir: .asciiz "Indique si desea que la nave avance o retroceda (W para avanzar 
 letra: .space 2
 	.asciiz ""
 laps: .asciiz "Vueltas hechas: "
-t: .asciiz "o"
+t: .byte 'o'
 tiempo_finalizado: .asciiz "Se ha acabado el tiempo. Deseas volver a jugar? (Responde '0' para no o '1' para si): "
 a1: .asciiz "  _____  _____    ____    ____  _____      ____    ____    ____  _____\n"
 a2: .asciiz " / ____||  __ \\  / __ \\  / ___|| ____|    |    \\  / __ \\  / ___|| ____|\n"          
@@ -420,27 +420,60 @@ sgte:
 	
 # Conteo de laps
 linea_laps:
+	
 	li $v0 4
 	la $a0 laps
 	syscall
+	li	$s6,0
 	
+	mmio_display_laps:
+		beq $s6,16,conteo
+		lw      $s7,0xffff0008      
+    		andi    $s7,$s7,1               
+    		beq     $s7,$zero,mmio_display_laps
+		lb 	$s7, 0($a0)
+		sb      $s7,0xffff000c
+		addi	$s6,$s6,1
+		addi	$a0,$a0,1
+    		j	mmio_display_laps
+	
+	conteo:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,conteo
 	li $v0 1
 	move $a0 $s2
 	syscall
+	addi $a0,$a0,48
+	sb      $a0,0x000c($s6)
 	
+	siguiente_linea:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,siguiente_linea
 	li $v0 4
 	la $a0 nl
 	syscall
+	li $a0,10
+	sb      $a0,0x000c($s6)
 	move $t4 $s4
 	addi $s3 $s3 1
 	
 # Imprime el tiempo constante
 print_tiempo:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,print_tiempo
 	beq $s3 25 p_tiempo
 	beqz $s4 tiempo_agotado
 	beqz $t4 volver_t
-	li $v0 4
-	la $a0 t
+	
+	li $v0 11
+	lb $a0 t
+	sb      $a0,0x000c($s6)	
 	syscall
 	subi $t4 $t4 1
 	j print_tiempo
@@ -451,10 +484,15 @@ p_tiempo: subi $s4 $s4 1
 
 #Imprime el tiempo cuando hay que reducir uno
 tiempo:
+	la      $s6,0xffff0000
+	lw      $s7,0x0008($s6)                
+    	andi    $s7,$s7,1               
+    	beq     $s7,$zero,tiempo
 	beqz $s4 tiempo_agotado
 	beqz $t4 volver_t
-	li $v0 4
-	la $a0 t
+	li $v0 11
+	lb $a0 t
+	sb      $a0,0x000c($s6)
 	syscall
 	subi $t4 $t4 1
 	move $s3 $zero
